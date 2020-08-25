@@ -16,6 +16,9 @@ kosta@kostis.de (Konstantinos Kostis), http://www.kostis.de/
 You may use this script free of charge at your own risk.
 
 History:
+  2020-08-25: V0.11 KK
+    - added more error checking
+	- made DEBUG a parameter
   2020-08-18: V0.10 KK
 	- initial coding (no history before release)
 """
@@ -25,8 +28,6 @@ import sys
 from cryptography.fernet import Fernet
 
 SCRIPT = os.path.basename(sys.argv[0])
-
-DEBUG = 0
 
 def decrypt_password(crypted):
 	""" Return decrypted password. """
@@ -44,10 +45,8 @@ def decrypt_password(crypted):
 
 	return(decrypted)
 
-def read_credentials(DO_DEVICE):
+def read_credentials(DEBUG, DO_DEVICE):
 	""" Return dictionary of realms, return None if any error. """
-
-	global DEBUG
 
 	filename = os.path.join(DO_DEVICE, 'SNMP-credentials.txt')
 
@@ -88,7 +87,7 @@ def read_credentials(DO_DEVICE):
 
 	return(realms)
 
-def read_deviceinfo (DO_DEVICE, realms, device):
+def read_deviceinfo (DEBUG, DO_DEVICE, realms, device):
 	""" Return credentials for given device, return None if any error. """
 
 	filename = os.path.join(DO_DEVICE, 'SNMP-deviceinfo.txt')
@@ -119,17 +118,24 @@ def read_deviceinfo (DO_DEVICE, realms, device):
 			(curdevice, ipaddr, community, port) = curline.split(';')
 
 			if len(community) > 0 and community.startswith('*'):
-				my_realm = realms[community]
-				community = my_realm['community']
+				if community in realms:
+					my_realm = realms[community]
+					community = my_realm['community']
+				else:
+					print('### WARNING ', SCRIPT, ': community realm ', community, ' for ', curdevice,' unknown', sep='', file=sys.stderr)
+					community = ''
 			elif len(community) > 0:
 				community = decrypt_password(community)
 			if len(port) > 0 and port.startswith('*'):
-				my_realm = realms[port]
-				port = my_realm['port']
-
+				if port in realms:
+					my_realm = realms[port]
+					port = my_realm['port']
+				else:
+					print('### WARNING ', SCRIPT, ': port realm ', port, ' for ', curdevice,' unknown', sep='', file=sys.stderr)
+					port = '#invalid'
 			if curdevice == device:
-				if community == '' and username == '':
-					print('### ERROR read_deviceinfo(): empty user credentials for', device, file=sys.stderr)
+				if community == '':
+					print('### ERROR read_deviceinfo(): no community for', device, file=sys.stderr)
 					return(None)
 				if not port.isnumeric():
 					print('### ERROR read_deviceinfo(): invalid port', port, file=sys.stderr)
@@ -146,25 +152,26 @@ def read_deviceinfo (DO_DEVICE, realms, device):
 
 	return(None)
 
-def get_credentials(device):
+def get_credentials(DEBUG, device):
 	""" Return credentials ans ssh port for a given device. """
 
+	DO_ENV = 'DO_DEVICE'
 	DO_DEVICE = ''
-	if 'DO_DEVICE' in os.environ:
-		DO_DEVICE = os.environ['DO_DEVICE']
+	if DO_ENV in os.environ:
+		DO_DEVICE = os.environ[DO_ENV]
 	else:
-		print('### ERROR get_credentials(): environment variable DO_DEVICE must be set', file=sys.stderr)
+		print('### ERROR get_credentials(): environment variable', DO_ENV, 'must be set', file=sys.stderr)
 		return(None)
 
 	if not os.path.isdir(DO_DEVICE):
 		print('### ERROR get_credentials(): unable to access directory', DO_DEVICE, file=sys.stderr)
 		return(None)
 
-	realms = read_credentials(DO_DEVICE)
+	realms = read_credentials(DEBUG, DO_DEVICE)
 	if realms is None:
 		return(None)
 
-	device_credentials = read_deviceinfo(DO_DEVICE, realms, device)
+	device_credentials = read_deviceinfo(DEBUG, DO_DEVICE, realms, device)
 
 	return(device_credentials)
 
@@ -176,3 +183,4 @@ if __name__ == '__main__':
 		encoded = sys.argv[1]
 		decoded = decrypt_password(encoded)
 		print(decoded)
+		sys.exit(0)

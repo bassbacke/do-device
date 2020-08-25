@@ -17,8 +17,8 @@ output format:
 
 inspired by cammer.pl 2.0
 
-2020-08-18: V0.11 KK
-	- add some Juniper support
+2020-08-25: V0.11 KK
+	- added DEBUG for get_credentials()
 2020-08-18: V0.10 KK
 	- initial encoding
 """
@@ -369,7 +369,7 @@ def main():
 	if DEBUG:
 		print('### DEBUG ', SCRIPT, ': trying to determine credentials for ', hostname, sep='', file=sys.stderr)
 
-	credentials = get_credentials(hostname)
+	credentials = get_credentials(DEBUG, hostname)
 	if credentials == None:
 		print('### ERROR ', SCRIPT,': unable to determine credentials for ', hostname, file=sys.stderr, sep='')
 		return(3)
