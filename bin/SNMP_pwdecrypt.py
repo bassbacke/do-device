@@ -2,7 +2,7 @@
 """
 Decrypt SNMP credentials for a given device.
 
-SNMP-pwdecrypt.py uses environment variable DO_DEVICE.
+SNMP_pwdecrypt.py uses environment variable DO_DEVICE.
 
 DO_DEVICE - directory containing two files:
 
@@ -75,12 +75,12 @@ def read_credentials(DEBUG, DO_DEVICE):
 					'port': port
 				}
 				realms[myrealm] = realm_data
-				
+
 	if realms == {}:
 		if DEBUG:
 			print('### DEBUG read_credentials(): read no realms', file=sys.stderr)
 		return(None)
-		
+
 	if DEBUG:
 		print('### DEBUG read_credentials(): read', len(realms), 'realms', file=sys.stderr)
 		print('### DEBUG read_credentials(): realms', realms, file=sys.stderr)

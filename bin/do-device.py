@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 """
 	Execute a script on a network device using ssh login creating a logfile.
 
@@ -6,13 +6,15 @@
 
 	do-device.py imports pwdecrypt.py, which in turn requires environment variables
 
-	Copyright (c) 2017-2019 by Kostis Netzwerkberatung
+	Copyright (c) 2017-2020 by Kostis Netzwerkberatung
 	Talstr. 25, D-63322 Roedermark, Tel. +49 6074 881056
 	kosta@kostis.de (Konstantinos Kostis), http://www.kostis.de/
 
 	You may use this script free of charge at your own risk.
 
 	History:
+	  2020-08-25: V0.39 KK
+	    - use SSH_pwdecrypt.py instead of pwdecrypt.py
 	  2019-08-13: V0.38 KK
 	    - cosmetic changes
 	  2019-07-11: V0.37 KK
@@ -45,7 +47,7 @@ import time						# needed for sleep()
 from pathlib import Path
 from netmiko import ConnectHandler, cisco
 
-from pwdecrypt import get_credentials
+from SSH_pwdecrypt import get_credentials
 
 import logging
 
@@ -58,7 +60,7 @@ logfile = ''
 """ Python SCRIPT basename """
 
 SCRIPT = os.path.basename(sys.argv[0])
-VERSION = 'V0.38 (2019-08-13)'
+VERSION = 'V0.39 (2020-08-25)'
 
 """ ERROR CODES """
 
@@ -77,7 +79,7 @@ ERR_SEND_COMMAND = 42
 def WhatAmI(output):
 	""" Display information about this script (to output). """
 
-	print('Copyright (c) 2017-2019 by Kostis Netzwerkberatung', file=output)
+	print('Copyright (c) 2017-2020 by Kostis Netzwerkberatung', file=output)
 	print('Written by Konstantinos Kostis (kosta@kostis.net)', file=output)
 	print('Talstr. 25, D-63322 Roedermark, Germany', file=output)
 	print('', file=output)
@@ -154,7 +156,7 @@ def do_device(device, script, logfile):
 	if DEBUG > 0:
 		print('### DEBUG', SCRIPT, 'getting credentials for', device, file=sys.stderr)
 		
-	(credentials, ssh_port) = get_credentials(device)
+	(credentials, ssh_port) = get_credentials(DEBUG, device)
 	if credentials == None:
 		WhatAmI(sys.stderr)
 		print('### ERROR ', SCRIPT,': unable to determine credentials for ', device, file=sys.stderr, sep='')

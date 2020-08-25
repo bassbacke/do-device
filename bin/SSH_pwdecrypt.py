@@ -2,20 +2,24 @@
 """
 Decrypt credentials for a given device.
 
-pwdecrypt.py uses environment variable DO_DEVICE.
+SSH_pwdecrypt.py uses environment variable DO_DEVICE.
 
 DO_DEVICE - directory containing two files:
 
 	credentials.txt		contains account information /using realms)
 	deviceinfo.txt		contains device information
 
-Copyright (c) 2017-2019 by Kostis Netzwerkberatung
+Copyright (c) 2017-2020 by Kostis Netzwerkberatung
 Talstr. 25, D-63322 Roedermark, Tel. +49 6074 881056
 kosta@kostis.de (Konstantinos Kostis), http://www.kostis.de/
 
 You may use this script free of charge at your own risk.
 
 History:
+  2020-08-25: V0.16 KK
+    - renamed from pwdecrypt.py to SSH_pwdecrypt.py
+	- more error checking for realms
+	- added DEBUG parameter
   2019-08-13: V0.15 KK
     - cosmetic changes
   2019-07-08: V0.14 KK
@@ -48,10 +52,10 @@ def decrypt_password(crypted):
 
 	return(decrypted)
 
-def read_credentials(DO_DEVICE):
+def read_credentials(DEBUG, DO_DEVICE):
 	""" Return dictionary of realms, return None if any error. """
 
-	filename = os.path.join(DO_DEVICE, 'credentials.txt')
+	filename = os.path.join(DO_DEVICE, 'SSH-credentials.txt')
 
 	try:
 		f = open(filename, 'r')
@@ -84,17 +88,26 @@ def read_credentials(DO_DEVICE):
 					'secret': secret
 				}
 				realms[myrealm] = realm_data
-				
+
 	if realms == {}:
+		if DEBUG:
+			print('### DEBUG read_credentials(): read no realms', file=sys.stderr)
 		return(None)
+
+	if DEBUG:
+		print('### DEBUG read_credentials(): read', len(realms), 'realms', file=sys.stderr)
+		print('### DEBUG read_credentials(): realms', realms, file=sys.stderr)
 		
 	return(realms)
 
-def read_deviceinfo (DO_DEVICE, realms, device):
+def read_deviceinfo (DEBUG, DO_DEVICE, realms, device):
 	""" Return credentials and sshh port for given device, return None and ssh port if any error. """
 
 	ssh_port = 22	# default ssh port
-	filename = os.path.join(DO_DEVICE, 'deviceinfo.txt')
+	filename = os.path.join(DO_DEVICE, 'SSH-deviceinfo.txt')
+
+	if DEBUG:
+		print('### DEBUG read_deviceinfo(): device ', device, sep='', file=sys.stderr)
 
 	try:
 		f = open(filename, 'r')
@@ -115,7 +128,12 @@ def read_deviceinfo (DO_DEVICE, realms, device):
 
 		if len(curline) > 0 and not curline.startswith('#'):
 			if curline.count(';') != 5 and curline.count(';') != 6:
+				if DEBUG:
+					print('### DEBUG ', SCRIPT, ': invalid line ', curline, sep='', file=sys.stderr)
 				continue
+
+			if DEBUG:
+				print('### DEBUG read_deviceinfo():', curline, file=sys.stderr)
 
 			ssh_port = 22
 			n_semicolon = curline.count(';')
@@ -129,18 +147,29 @@ def read_deviceinfo (DO_DEVICE, realms, device):
 				ip = curdevice
 
 			if len(username) > 0 and username.startswith('*'):
-				my_realm = realms[username]
-				username = my_realm['username']
-
+				if username in realms:
+					my_realm = realms[username]
+					username = my_realm['username']
+				else:
+					print('### WARNING ', SCRIPT, ': username realm ', username, ' for ', curdevice,' unknown', sep='', file=sys.stderr)
+					username = ''
 			if len(password) > 0 and password.startswith('*'):
-				my_realm = realms[password]
-				password = my_realm['password']
+				if password in realms:
+					my_realm = realms[password]
+					password = my_realm['password']
+				else:
+					print('### WARNING ', SCRIPT, ': password realm ', password, ' for ', curdevice,' unknown', sep='', file=sys.stderr)
+					password = ''
 			elif len(password) > 0:
 				password = decrypt_password(password)
 
 			if len(secret) > 0 and secret.startswith('*'):
-				my_realm = realms[secret]
-				secret = my_realm['secret']
+				if secret in realms:
+					my_realm = realms[secret]
+					secret = my_realm['secret']
+				else:
+					print('### WARNING ', SCRIPT, ': secret realm ', secret, ' for ', curdevice,' unknown', sep='', file=sys.stderr)
+					secret = ''
 			elif len(secret) > 0:
 				secret = decrypt_password(secret)
 
@@ -160,9 +189,10 @@ def read_deviceinfo (DO_DEVICE, realms, device):
 
 	return(None, ssh_port)
 
-def get_credentials(device):
+def get_credentials(DEBUG, device):
 	""" Return credentials ans ssh port for a given device. """
 
+	ssh_port = 22
 	DO_DEVICE = ''
 	if 'DO_DEVICE' in os.environ:
 		DO_DEVICE = os.environ['DO_DEVICE']
@@ -174,11 +204,11 @@ def get_credentials(device):
 		print('### ERROR get_credentials (): unable to access directory', DO_DEVICE, file=sys.stderr)
 		return(None, ssh_port)
 
-	realms = read_credentials(DO_DEVICE)
+	realms = read_credentials(DEBUG, DO_DEVICE)
 	if realms is None:
 		return(None, ssh_port)
 
-	(device_credentials, ssh_port) = read_deviceinfo(DO_DEVICE, realms, device)
+	(device_credentials, ssh_port) = read_deviceinfo(DEBUG, DO_DEVICE, realms, device)
 
 	return(device_credentials, ssh_port)
 
@@ -190,3 +220,4 @@ if __name__ == '__main__':
 		encoded = sys.argv[1]
 		decoded = decrypt_password(encoded)
 		print(decoded)
+		sys.exit(0)

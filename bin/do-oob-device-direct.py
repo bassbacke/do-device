@@ -25,7 +25,7 @@ from pathlib import Path
 from netmiko import ConnectHandler, cisco
 import paramiko
 
-from pwdecrypt import get_credentials
+from SSH_pwdecrypt import get_credentials
 
 import logging
 
@@ -39,7 +39,7 @@ logfile = ''
 """ Python SCRIPT basename """
 
 SCRIPT = os.path.basename(sys.argv[0])
-VERSION = 'V0.01 (2020-02-19)'
+VERSION = 'V0.02 (2020-08-25)'
 
 """ ERROR CODES """
 
@@ -185,7 +185,7 @@ def do_oob_device(device, logfile):
 		return(ERR_LOGFILE)
 
 	""" Get credentials for device. """
-	(credentials, ssh_port) = get_credentials(device)
+	(credentials, ssh_port) = get_credentials(DEBUG, device)
 	if credentials is None:
 		WhatAmI(sys.stderr)
 		print('*** ERROR ', SCRIPT,': unable to determine credentials for ', \

@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 """
 	Execute a script on a network device using ssh login creating a logfile.
 	Special edition for oob routers.
@@ -7,7 +7,7 @@
 
 	do-oob-device.py imports pwdecrypt.py, which in turn requires environment variables
 
-	Copyright (c) 2019 by Kostis Netzwerkberatung
+	Copyright (c) 2019-2020 by Kostis Netzwerkberatung
 	Talstr. 25, D-63322 Roedermark, Tel. +49 6074 881056
 	kosta@kostis.de (Konstantinos Kostis), http://www.kostis.de/
 
@@ -25,7 +25,7 @@ from pathlib import Path
 from netmiko import ConnectHandler, cisco
 import paramiko
 
-from pwdecrypt import get_credentials
+from SSH_pwdecrypt import get_credentials
 
 import logging
 
@@ -39,7 +39,7 @@ logfile = ''
 """ Python SCRIPT basename """
 
 SCRIPT = os.path.basename(sys.argv[0])
-VERSION = 'V0.21 (2019-08-07)'
+VERSION = 'V0.22 (2020-08-25)'
 
 """ ERROR CODES """
 
@@ -191,7 +191,7 @@ def do_oob_device(device, logfile):
 		return(ERR_LOGFILE)
 
 	""" Get credentials for device. """
-	(credentials, ssh_port) = get_credentials(device)
+	(credentials, ssh_port) = get_credentials(DEBUG, device)
 	if credentials is None:
 		WhatAmI(sys.stderr)
 		print('*** ERROR ', SCRIPT,': unable to determine credentials for ', \
